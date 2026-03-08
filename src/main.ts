@@ -31,7 +31,7 @@
 // =============================================================================
 
 import type { Country, UiState } from './types/country';
-import { searchCountries, ApiError } from './services/countryApi';
+import { searchCountries, getCountriesByRegion, ApiError } from './services/countryApi';
 import { renderCountryList } from './components/CountryCard';
 import { openModal } from './components/CountryModal';
 import { getRequiredElement, showElement, hideElement, onDOMReady, debounce } from './utils/dom';
@@ -48,6 +48,9 @@ let currentState: UiState = { status: 'idle' };
 
 /** Última búsqueda realizada (para evitar búsquedas duplicadas) */
 let lastSearchQuery = '';
+
+/** Última región seleccionada */
+let lastSearchRegion = '';
 
 // =============================================================================
 // REFERENCIAS A ELEMENTOS DEL DOM
@@ -66,6 +69,9 @@ let emptyState: HTMLElement;
 let noResultsState: HTMLElement;
 let countriesList: HTMLElement;
 
+//let para region selecc.
+let regionSelect: HTMLSelectElement;
+
 /**
  * Inicializa las referencias a los elementos del DOM.
  * Se llama una vez cuando la aplicación arranca.
@@ -80,6 +86,9 @@ function initializeElements(): void {
   emptyState = getRequiredElement<HTMLElement>('#emptyState');
   noResultsState = getRequiredElement<HTMLElement>('#noResultsState');
   countriesList = getRequiredElement<HTMLElement>('#countriesList');
+
+  //Enlazamos con el html
+  regionSelect = getRequiredElement<HTMLSelectElement>('#regionSelect');
 }
 
 // =============================================================================
@@ -179,19 +188,27 @@ function render(state: UiState): void {
 async function handleSearch(): Promise<void> {
   const query = searchInput.value.trim();
 
+  // Atrapamos el valor del select ("Europe", "Asia", etc o "")
+  const region = regionSelect.value;
+
   // Si la búsqueda está vacía, volvemos al estado inicial
-  if (query.length === 0) {
+  //Agregamo nueva validacion para la busqueda por region
+  if (query.length === 0 && region === '') {
     render({ status: 'idle' });
     lastSearchQuery = '';
+
+    lastSearchRegion = '';
     return;
   }
 
   // Evitamos búsquedas duplicadas
-  if (query === lastSearchQuery && currentState.status === 'success') {
+  //Agregamos validacion tambien de la ultima region buscada
+  if (query === lastSearchQuery && region === lastSearchRegion && currentState.status === 'success') {
     return;
   }
 
   lastSearchQuery = query;
+  lastSearchRegion = region;
 
   // Mostramos estado de carga
   render({ status: 'loading' });
@@ -203,8 +220,33 @@ async function handleSearch(): Promise<void> {
     // await pausa la ejecución hasta que la Promise se resuelve.
     // Si la Promise se rechaza, el error se captura en el catch.
     // =========================================================================
-    const countries = await searchCountries(query);
+    
+    //cambiamos a un let para que sea mutable
+    //const countries = await searchCountries(query);
 
+    // Obtenemos qué región seleccionó el usuario ("Europe", "Asia", etc. o "" si está vacío)
+    const region = regionSelect.value;
+    
+    // Preparamos un arreglo vacío que llenaremos dependiendo del caso
+    let countries: Country[] = [];
+
+    // CASO A: El usuario escribió algo en el buscador
+    if (query.length > 0) {
+      // Traemos los países de la API
+      countries = await searchCountries(query); 
+      
+      // Si además de escribir, seleccionó una región, filtramos los que no coincidan
+      if (region !== '') {
+        countries = countries.filter(country => country.region === region);
+      }
+    } 
+    // CASO B: El usuario NO escribió nada, pero SÍ seleccionó una región
+    else if (region !== '') {
+      // Usamos el endpoint específico de la API para traer toda la región
+      countries = await getCountriesByRegion(region);
+    }
+
+    // Evaluamos qué mostrar en la pantalla
     if (countries.length === 0) {
       render({ status: 'empty' });
     } else {
@@ -279,6 +321,12 @@ function setupEventListeners(): void {
     if (event.key === 'Enter') {
       void handleSearch();
     }
+  });
+
+    //AGREGAMOS EL NUEVO EVENT
+    // Select de Región: búsqueda inmediata al cambiar de opción
+  regionSelect.addEventListener('change', () => {
+    void handleSearch();
   });
 
   // Botón de reintentar
