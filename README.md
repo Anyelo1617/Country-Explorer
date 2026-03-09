@@ -72,3 +72,9 @@ Este proyecto sirvió para poner en práctica:
 * **Promesas y consumo asíncrono** (`async/await`) manejando correctamente los bloques `try/catch`.
 * **Manejo avanzado de arrays** (`filter`, `some`, `findIndex`) para la lógica de búsqueda cruzada.
 * **Rendimiento web** mediante el uso de `DocumentFragment` para renderizar listas y `debounce` para inputs de texto.
+  ##
+
+<div align="center">
+<p><strong>Imagen Preview antes de las modificaciones:</strong></p>
+<img src="/assets/image.png" alt="Captura de Country Explorer" width="900">
+</div>
