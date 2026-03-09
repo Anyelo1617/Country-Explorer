@@ -90,4 +90,4 @@ Este proyecto sirvió para poner en práctica:
 
 </div>
 
-Link al video explicativo:
+Link al video explicativo: https://youtu.be/Bv4oR368iLA
