@@ -75,6 +75,19 @@ Este proyecto sirvió para poner en práctica:
   ##
 
 <div align="center">
-<p><strong>Imagen Preview antes de las modificaciones:</strong></p>
+<h2> Imagen Preview antes de las modificaciones </h2>
 <img src="/assets/image.png" alt="Captura de Country Explorer" width="900">
 </div>
+
+<div align="center">
+  <h2> Resultado Final </h2>
+
+  <img src="./assets/imagen-2.png" alt="Vista de la aplicación con filtros aplicados" width="850">
+
+  <img src="./assets/imagen-3.png" alt="Pantalla de la sección de favoritos" width="850">
+
+  <img src="./assets/imagen-4.png" alt="Manejo de mensajes de error o sin resultados" width="850">
+
+</div>
+
+Link al video explicativo:
