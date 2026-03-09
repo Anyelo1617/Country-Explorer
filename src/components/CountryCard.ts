@@ -58,6 +58,17 @@ export function createCountryCard(
   // =========================================================================
   card.innerHTML = `
     <div class="relative">
+
+    <!-- Botón de Favorito -->
+    <button
+        class="favorite-btn absolute top-3 left-3 p-2 bg-slate-900/80 rounded-full text-slate-400 hover:text-pink-500 hover:scale-110 transition-all backdrop-blur-sm z-10"
+        aria-label="Marcar como favorito"
+      >
+        <svg class="w-5 h-5 heart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      </button>
+
       <!-- Bandera del país -->
       <img
         src="${country.flags.svg}"
@@ -120,6 +131,18 @@ export function createCountryCard(
   // Agregamos interactividad a la tarjeta. Soportamos tanto click como
   // teclado (Enter/Space) para accesibilidad.
   // =========================================================================
+
+  // Manejador para el botón de favorito
+  const favoriteBtn = card.querySelector('.favorite-btn');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', (event) => {
+      //Evita que el clic "traspase" hacia la tarjeta y abra el modal
+      event.stopPropagation(); 
+      
+      //test
+      console.log('Clic en el corazón de:', country.name.common);
+    });
+  }
 
   // Manejador de click
   card.addEventListener('click', () => {
