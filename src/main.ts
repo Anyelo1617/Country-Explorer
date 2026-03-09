@@ -36,6 +36,7 @@ import { renderCountryList } from './components/CountryCard';
 import { openModal } from './components/CountryModal';
 import { getRequiredElement, showElement, hideElement, onDOMReady, debounce } from './utils/dom';
 
+import { getFavorites, clearAllFavorites } from './utils/favorite';
 // =============================================================================
 // ESTADO DE LA APLICACIÓN
 // =============================================================================
@@ -68,6 +69,9 @@ let errorMessage: HTMLElement;
 let emptyState: HTMLElement;
 let noResultsState: HTMLElement;
 let countriesList: HTMLElement;
+
+const favoritesToggle = document.getElementById('favoritesFilter') as HTMLInputElement;
+const clearFavoritesBtn = document.getElementById('clearFavoritesBtn') as HTMLButtonElement;
 
 //let para region selecc.
 let regionSelect: HTMLSelectElement;
@@ -191,16 +195,17 @@ async function handleSearch(): Promise<void> {
   // Atrapamos el valor del select ("Europe", "Asia", etc o "")
   const region = regionSelect.value;
 
+  const isFavoritesOnly = favoritesToggle.checked;
+
   // Si la búsqueda está vacía, volvemos al estado inicial
   //Agregamo nueva validacion para la busqueda por region
-  if (query.length === 0 && region === '') {
+  // Si no hay texto, no hay región, Y NO está marcado "Solo favoritos", mostramos estado 'idle'
+  if (query.length === 0 && region === '' && !isFavoritesOnly) {
     render({ status: 'idle' });
     lastSearchQuery = '';
-
     lastSearchRegion = '';
     return;
   }
-
   // Evitamos búsquedas duplicadas
   //Agregamos validacion tambien de la ultima region buscada
   if (query === lastSearchQuery && region === lastSearchRegion && currentState.status === 'success') {
@@ -225,11 +230,12 @@ async function handleSearch(): Promise<void> {
     //const countries = await searchCountries(query);
 
     // Obtenemos qué región seleccionó el usuario ("Europe", "Asia", etc. o "" si está vacío)
-    const region = regionSelect.value;
+    const region = regionSelect.value as any;
     
     // Preparamos un arreglo vacío que llenaremos dependiendo del caso
     let countries: Country[] = [];
 
+    
     // CASO A: El usuario escribió algo en el buscador
     if (query.length > 0) {
       // Traemos los países de la API
@@ -240,19 +246,62 @@ async function handleSearch(): Promise<void> {
         countries = countries.filter(country => country.region === region);
       }
     } 
+
     // CASO B: El usuario NO escribió nada, pero SÍ seleccionó una región
     else if (region !== '') {
       // Usamos el endpoint específico de la API para traer toda la región
       countries = await getCountriesByRegion(region);
     }
 
+    // CASO C: El usuario NO escribió nada, NO seleccionó región, pero quiere ver favoritos
+    else if (isFavoritesOnly) {
+      countries = getFavorites();
+    }
+    
+
+    const favorites = getFavorites();
+
+    // Si el checkbox de favoritos está marcado, filtramos la lista actual
+    if (favoritesToggle.checked) {
+      // Solo necesitamos filtrar si previamente buscamos algo por texto o región
+      if (query.length > 0 || region !== '') {
+        countries = countries.filter(country => 
+          favorites.some((fav: Country) => fav.cca3 === country.cca3)
+        );
+      }
+    }
+
+    // Controlamos la visibilidad del botón "Limpiar"
+    // Solo se muestra si hay algún favorito guardado
+    if (clearFavoritesBtn) {
+      clearFavoritesBtn.classList.toggle('hidden', favorites.length === 0);
+    }
+
     // Evaluamos qué mostrar en la pantalla
     if (countries.length === 0) {
+      // =====================================================================
+      // Lógica para cambiar dinámicamente el mensaje de "No hay resultados"
+      // =====================================================================
+      const noResultsText = noResultsState.querySelector('p');
+      if (noResultsText) {
+        if (isFavoritesOnly && favorites.length === 0) {
+          noResultsText.textContent = '😕 No tienes países favoritos guardados aún.';
+        } 
+        else if (isFavoritesOnly) {
+          noResultsText.textContent = '😕 Ningún país favorito coincide con esta búsqueda.';
+        } 
+        else {
+          noResultsText.textContent = '😕 No se encontraron países con ese nombre o región.';
+        }
+      }
+      
       render({ status: 'empty' });
     } else {
       render({ status: 'success', data: countries });
     }
-  } catch (error) {
+
+  } 
+  catch (error) {
     // Determinamos el mensaje de error apropiado
     let message = 'Error desconocido al buscar países';
 
@@ -263,8 +312,6 @@ async function handleSearch(): Promise<void> {
     }
 
     render({ status: 'error', message });
-
-    // Log para debugging (en producción usaríamos un servicio de logging)
     console.error('Error en búsqueda:', error);
   }
 }
@@ -331,6 +378,23 @@ function setupEventListeners(): void {
 
   // Botón de reintentar
   retryButton.addEventListener('click', handleRetry);
+
+  favoritesToggle.addEventListener('change', () => {
+    // Vaciamos las variables de control para forzar que vuelva a buscar
+    lastSearchQuery = ''; 
+    lastSearchRegion = '';
+    void handleSearch();
+  });
+
+  // Escuchar el botón de limpiar
+  clearFavoritesBtn.addEventListener('click', () => {
+    if (confirm('¿Seguro que quieres borrar todos tus favoritos?')) {
+      clearAllFavorites();
+      favoritesToggle.checked = false; // Desmarcamos el checkbox
+      lastSearchQuery = ''; // Forzamos actualización
+      void handleSearch(); // Refrescamos la lista
+    }
+  });
 }
 
 /**

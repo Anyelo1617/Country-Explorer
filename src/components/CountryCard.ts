@@ -16,6 +16,8 @@ import type { Country } from '../types/country';
 import { formatNumber, formatCapitals } from '../utils/format';
 import { createElement } from '../utils/dom';
 
+import { isCountryFavorite, toggleFavorite } from '../utils/favorite'
+
 /**
  * Crea una tarjeta de país para mostrar en la lista.
  *
@@ -61,10 +63,10 @@ export function createCountryCard(
 
     <!-- Botón de Favorito -->
     <button
-        class="favorite-btn absolute top-3 left-3 p-2 bg-slate-900/80 rounded-full text-slate-400 hover:text-pink-500 hover:scale-110 transition-all backdrop-blur-sm z-10"
+        class="favorite-btn absolute top-3 left-3 p-2 bg-slate-900/80 rounded-full transition-all backdrop-blur-sm z-10 ${isCountryFavorite(country.cca3) ? 'text-pink-500' : 'text-slate-400'} hover:text-pink-500 hover:scale-110"
         aria-label="Marcar como favorito"
       >
-        <svg class="w-5 h-5 heart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 heart-icon" fill="${isCountryFavorite(country.cca3) ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       </button>
@@ -132,15 +134,25 @@ export function createCountryCard(
   // teclado (Enter/Space) para accesibilidad.
   // =========================================================================
 
-  // Manejador para el botón de favorito
+  // Manejador para el botón de favorito e icono
   const favoriteBtn = card.querySelector('.favorite-btn');
-  if (favoriteBtn) {
+  const heartIcon = card.querySelector('.heart-icon');
+
+  if (favoriteBtn && heartIcon) {
     favoriteBtn.addEventListener('click', (event) => {
       //Evita que el clic "traspase" hacia la tarjeta y abra el modal
       event.stopPropagation(); 
-      
-      //test
-      console.log('Clic en el corazón de:', country.name.common);
+      // Llamamos a nuestra utilidad para guardar/quitar
+      const isFav = toggleFavorite(country);
+
+      // Actualizamos el aspecto visual
+      if (isFav) {
+        favoriteBtn.classList.replace('text-slate-400', 'text-pink-500');
+        heartIcon.setAttribute('fill', 'currentColor');
+      } else {
+        favoriteBtn.classList.replace('text-pink-500', 'text-slate-400');
+        heartIcon.setAttribute('fill', 'none');
+      }
     });
   }
 
